@@ -197,7 +197,7 @@ class SE3:
         """
         rot = self.rot @ other.rot
         trans = self.rot.apply(other.p) + self.p
-        return SE3(trans, rot)
+        return self.__class__(trans, rot)
 
     def inv(self) -> SE3:
         """
@@ -210,7 +210,7 @@ class SE3:
         """
         rot: SO3 = self.rot.inv()
         trans: np.ndarray = -rot.apply(self.p)
-        return SE3(trans, rot)
+        return self.__class__(trans, rot)
     
     def __matmul__(self, target: SE3) -> SE3:
         """
@@ -256,4 +256,4 @@ class SE3:
         up = np.cross(left, forward)
         rot_mat = np.vstack([left, -up, forward]).T
         trans =np.asarray(camera_pos)
-        return SE3(trans, SO3.from_matrix(rot_mat))
+        return cls(trans, SO3.from_matrix(rot_mat))
