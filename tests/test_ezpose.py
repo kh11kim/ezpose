@@ -27,3 +27,12 @@ def test_SE3_multiply():
     is_SE3(pose_single @ pose_single)
     is_SE3_multiple(pose_single @ pose_multiple)
     is_SE3_multiple(pose_multiple @ pose_multiple)
+
+def test_SO3_generation():
+    xyzw = SO3.random().as_quat()
+    rot = SO3.from_xyzw(xyzw)
+    assert isinstance(rot, SO3)
+    wxyz = rot.as_wxyz()
+    xyzw2 = np.roll(wxyz, shift=-1)
+    np.testing.assert_almost_equal(
+        xyzw, xyzw2)

@@ -12,7 +12,14 @@ class SO3(Rotation):
     (https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.transform.Rotation.html)
     """
     def __repr__(self): return f"SO3(qtn-wxyz):\n{np.array2string(self.as_wxyz(), separator=', ')}"
-
+    @classmethod
+    def from_wxyz(cls, wxyz: ArrayLike) -> SO3:
+        xyzw = np.roll(wxyz, shift=-1)
+        return cls.from_quat(xyzw)
+    @classmethod
+    def from_xyzw(cls, xyzw: ArrayLike) -> SO3:
+        return cls.from_quat(xyzw)
+    
     def as_wxyz(self) -> np.ndarray:
         """
         Return the quaternion as an array in w, x, y, z order.

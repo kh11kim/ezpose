@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "ezpose"
-version = "0.1.0"
+version = "0.1.2"
 description = "A lightweight library for handling 3D rotations and translations with ease."
 authors = ["Kanghyun Kim <kh11kim@kaist.ac.kr>"]
 readme = "README.md"
+homepage = "https://github.com/kh11kim/ezpose"
 
 [tool.poetry.dependencies]
 python = "^3.9"
