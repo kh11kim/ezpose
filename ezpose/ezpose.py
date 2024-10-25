@@ -96,6 +96,9 @@ class SE3:
     def single(self) -> bool: return self.rot.single
     def __len__(self): return len(self.rot)
     def __repr__(self): return f"SE3(xyz_qtn): \n{np.array2string(self.as_xyz_qtn(), separator=', ')}"
+    def __getitem__(self, i): 
+        if not self.single: raise TypeError("Single transformation is not subscriptable.")
+        return SE3(p=self.p[i], rot=self.rot[i])
 
     @classmethod
     def identity(cls) -> SE3: 
