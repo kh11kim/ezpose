@@ -68,8 +68,8 @@ class SE3:
     """
     def __init__(
         self, 
-        p:ArrayLike = np.zeros(3),
-        rot:SO3 = SO3.identity(),
+        p:ArrayLike = None,
+        rot:SO3 = None,
     ) -> SE3:
         """
         Initialize an SE3 object.
@@ -87,6 +87,15 @@ class SE3:
         If the translation vector is multiple, it is expected to have the same length as the rotation matrix.
         If the rotation matrix is multiple, it is expected to have the same length as the translation vector.
         """
+        if p is None and rot is None:
+            p, rot = np.zeros(3), SO3()
+        elif p is None:
+            if rot.single: p = np.zeros(3)
+            else: p = np.zeros((len(rot), 3))
+        elif rot is None:
+            if len(p.shape) == 1: rot = SO3.identity()
+            else: rot = SO3.identity(p.shape[0])
+            
         self.p = np.array(p)
         self.rot = rot
         if len(self.p.shape) == 2 or not rot.single:
