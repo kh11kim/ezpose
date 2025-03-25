@@ -1,20 +1,10 @@
-[tool.poetry]
+[project]
 name = "ezpose"
-version = "0.1.2"
-description = "A lightweight library for handling 3D rotations and translations with ease."
-authors = ["Kanghyun Kim <kh11kim@kaist.ac.kr>"]
+version = "0.1.4"
+description = "Add your description here"
 readme = "README.md"
-homepage = "https://github.com/kh11kim/ezpose"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-numpy = "<2"
-scipy = "<1.13.1"
-
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.3"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy<2",
+    "scipy>=1.13.1",
+]
