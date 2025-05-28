@@ -5,8 +5,8 @@ Author: Kanghyun Kim
 Contact: kh11kim@kaist.ac.kr,  https://github.com/kh11kim
 
 Description:
-A class to represent and manipulate 6D poses. 
-This module is designed to provide utility functions for rotation and transformation, 
+A class to represent and manipulate 6D poses.
+This module is designed to provide utility functions for rotation and transformation,
 similar to the `scipy.spatial.transform.Rotation` class.
 
 """
@@ -27,7 +27,9 @@ class SO3(Rotation):
     """
 
     def __repr__(self):
-        return f"SO3(qtn-xyzw): {np.array2string(self.as_xyzw(), separator=', ')}"
+        return (
+            f"SO3(qtn-xyzw): {np.array2string(self.as_xyzw(), separator=', ')}"
+        )
 
     @classmethod
     def from_wxyz(cls, wxyz: ArrayLike) -> SO3:
@@ -97,6 +99,9 @@ class SO3(Rotation):
         """
         return self.__mul__(target)
 
+    def __eq__(self, other: SO3):
+        return self.approx_equal(other)
+
     def interpolate(self, other: SO3, ratio: float):
         delta = other.as_rotvec() - self.as_rotvec()
         rotvec = self.as_rotvec() + ratio * delta
@@ -164,6 +169,11 @@ class SE3:
         if self.single:
             raise TypeError("Single transformation is not subscriptable.")
         return SE3(trans=self.trans[i], rot=self.rot[i])
+
+    def __eq__(self, other: SE3):
+        rot_eq = self.rot == other.rot
+        trans_eq = np.all(self.trans == other.trans, axis=-1)
+        return rot_eq & trans_eq
 
     @classmethod
     def identity(cls) -> SE3:
