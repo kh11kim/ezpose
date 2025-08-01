@@ -103,9 +103,10 @@ class SO3(Rotation):
         return self.approx_equal(other)
 
     def interpolate(self, other: SO3, ratio: float):
-        delta = other.as_rotvec() - self.as_rotvec()
-        rotvec = self.as_rotvec() + ratio * delta
-        return SO3.from_rotvec(rotvec)
+        # delta = other.as_rotvec() - self.as_rotvec()
+        # rotvec = self.as_rotvec() + ratio * delta
+        rot_diff = self.inv() @ other
+        return self @ SO3.from_rotvec(rot_diff.as_rotvec() * ratio)
 
 
 class SE3:
