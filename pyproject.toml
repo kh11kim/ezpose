@@ -1,10 +1,10 @@
 [project]
 name = "ezpose"
-version = "0.1.10"
+version = "0.1.16"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "numpy<2",
+    "numpy",
     "scipy>=1.13.1",
 ]

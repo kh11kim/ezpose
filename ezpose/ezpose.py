@@ -32,6 +32,63 @@ class SO3(Rotation):
         )
 
     @classmethod
+    def _coerce_rotation(cls, rot: Rotation) -> SO3:
+        """Cast scipy Rotation into a strict SO3 instance."""
+        if isinstance(rot, cls):
+            return rot
+        if not isinstance(rot, Rotation):
+            raise TypeError(f"Expected scipy Rotation, got {type(rot).__name__}")
+        out = cls.from_quat(rot.as_quat())
+        if not isinstance(out, cls) or out.__class__ is not cls:
+            raise TypeError(
+                f"Expected strict {cls.__name__} instance, got {type(out).__name__}"
+            )
+        return out
+
+    @classmethod
+    def _from_rotation(cls, rot: Rotation) -> SO3:
+        return cls._coerce_rotation(rot)
+
+    @classmethod
+    def identity(cls, num: int | None = None) -> SO3:
+        return cls._from_rotation(Rotation.identity(num))
+
+    @classmethod
+    def random(cls, num: int | None = None, rng=None) -> SO3:
+        try:
+            rot = Rotation.random(num=num, rng=rng)
+        except TypeError:
+            rot = Rotation.random(num=num, random_state=rng)
+        return cls._from_rotation(rot)
+
+    @classmethod
+    def concatenate(cls, rotations) -> SO3:
+        rotations = list(rotations)
+        if len(rotations) == 0:
+            return cls.identity(0)
+        return cls._from_rotation(Rotation.concatenate(rotations))
+
+    @classmethod
+    def from_euler(
+        cls,
+        seq,
+        angles,
+        degrees: bool = False,
+    ) -> SO3:
+        return cls._from_rotation(
+            Rotation.from_euler(seq, angles, degrees=degrees)
+        )
+
+    @classmethod
+    def from_quat(cls, quat: ArrayLike) -> SO3:
+        out = super().from_quat(quat)
+        if not isinstance(out, cls) or out.__class__ is not cls:
+            raise TypeError(
+                f"scipy Rotation.from_quat returned {type(out).__name__}, expected strict {cls.__name__}"
+            )
+        return out
+
+    @classmethod
     def from_wxyz(cls, wxyz: ArrayLike) -> SO3:
         xyzw = np.roll(wxyz, shift=-1)
         return cls.from_quat(xyzw)
@@ -43,7 +100,7 @@ class SO3(Rotation):
     @classmethod
     def from_matrix(cls, mat: ArrayLike) -> SO3:
         assert isinstance(mat, np.ndarray) and mat.shape[-2:] == (3, 3)
-        return super().from_matrix(np.array(mat))  # copy
+        return cls._from_rotation(Rotation.from_matrix(np.array(mat)))  # copy
 
     def as_rot6d(self) -> np.ndarray:
         mat = self.as_matrix()
@@ -97,10 +154,22 @@ class SO3(Rotation):
             The rotated target vector or array of vectors.
 
         """
-        return self.__mul__(target)
+        result = self.__mul__(target)
+        if isinstance(target, Rotation):
+            return self._coerce_rotation(result)
+        return result
+
+    def inv(self) -> SO3:
+        return self._from_rotation(super().inv())
 
     def __eq__(self, other: SO3):
-        return self.approx_equal(other)
+        if hasattr(self, "approx_equal"):
+            return self.approx_equal(other)
+        q_self = self.as_quat()
+        q_other = other.as_quat()
+        same = np.all(np.isclose(q_self, q_other), axis=-1)
+        neg_same = np.all(np.isclose(q_self, -q_other), axis=-1)
+        return same | neg_same
 
     def interpolate(self, other: SO3, ratio: float):
         # delta = other.as_rotvec() - self.as_rotvec()
@@ -139,6 +208,14 @@ class SE3:
 
         if trans is None and rot is None:
             trans, rot = np.zeros(3), SO3.identity()
+        if rot is not None:
+            # Accept plain scipy Rotation and normalize to SO3 once at construction time.
+            if isinstance(rot, Rotation) and not isinstance(rot, SO3):
+                rot = SO3._from_rotation(rot)
+            if not isinstance(rot, SO3):
+                raise TypeError(
+                    f"rot must be SO3 or scipy Rotation, got {type(rot).__name__}"
+                )
         if trans is None:
             if rot.single:
                 trans = np.zeros(3)
@@ -224,6 +301,17 @@ class SE3:
         assert isinstance(mat, np.ndarray) and mat.shape[-2:] == (4, 4)
         rot: SO3 = SO3.from_matrix(mat[..., :3, :3])
         trans: np.ndarray = mat[..., :3, -1]
+        return cls(rot=rot, trans=trans)
+    
+    @classmethod
+    def from_xyz_qtn(cls, xyz_qtn: ArrayLike, qtn_order="xyzw") -> SE3:
+        assert isinstance(xyz_qtn, np.ndarray) and xyz_qtn.shape[-1] == 7
+        trans = xyz_qtn[..., :3]
+        qtn = xyz_qtn[..., 3:]
+        if qtn_order == "xyzw":
+            rot: SO3 = SO3.from_xyzw(qtn)
+        elif qtn_order == "wxyz":
+            rot: SO3 = SO3.from_wxyz(qtn)
         return cls(rot=rot, trans=trans)
 
     def as_xyz_qtn(self, qtn_order="xyzw") -> np.ndarray:
