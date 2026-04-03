@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from typing import Optional
 from scipy.spatial.transform import Rotation
 
 from ezpose import SE3, SO3
@@ -50,7 +51,7 @@ def test_equal():
     assert all(T == T)
 
 
-def _assert_strict_so3_instance(rot, *, single: bool | None = None, length: int | None = None):
+def _assert_strict_so3_instance(rot, *, single: Optional[bool] = None, length: Optional[int] = None):
     assert isinstance(rot, SO3)
     assert isinstance(rot, Rotation)
     assert rot.__class__ is SO3
@@ -69,6 +70,8 @@ def _assert_strict_so3_instance(rot, *, single: bool | None = None, length: int 
         (lambda: SO3.from_wxyz([1.0, 0.0, 0.0, 0.0]), True, None),
         (lambda: SO3.from_euler("ZYX", [0.0, 0.0, 0.0], degrees=True), True, None),
         (lambda: SO3.from_euler("ZYX", [[0.0, 0.0, 0.0], [10.0, 20.0, 30.0]], degrees=True), False, 2),
+        (lambda: SO3.from_rotvec([0.0, 0.0, 0.0]), True, None),
+        (lambda: SO3.from_rotvec([[0.0, 0.0, 0.0], [0.1, 0.2, 0.3]]), False, 2),
         (lambda: SO3.from_matrix(np.eye(3)), True, None),
         (lambda: SO3.from_matrix(np.stack([np.eye(3), np.eye(3)])), False, 2),
         (lambda: SO3.from_rot6d(np.asarray([1.0, 0.0, 0.0, 0.0, 1.0, 0.0])), True, None),
@@ -122,4 +125,12 @@ def test_se3_from_xyz_qtn_uses_strict_so3() -> None:
 def test_dfc_hand_info_regression_path_uses_strict_so3() -> None:
     quat = Rotation.from_euler("ZYX", [0.0, 0.0, 0.0], degrees=True).as_quat()
     pose = SE3.from_xyz_qtn(np.asarray([0.0, 0.0, 0.0, *quat], dtype=float))
+    _assert_strict_so3_instance(pose.rot, single=True, length=None)
+
+
+def test_se3_constructor_accepts_plain_scipy_rotation() -> None:
+    pose = SE3(
+        rot=Rotation.from_euler("ZYX", [10.0, 20.0, 30.0], degrees=True),
+        trans=np.asarray([1.0, 2.0, 3.0]),
+    )
     _assert_strict_so3_instance(pose.rot, single=True, length=None)

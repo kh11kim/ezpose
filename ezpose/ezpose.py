@@ -34,11 +34,12 @@ class SO3(Rotation):
     @classmethod
     def _coerce_rotation(cls, rot: Rotation) -> SO3:
         """Cast scipy Rotation into a strict SO3 instance."""
-        if isinstance(rot, cls):
+        if isinstance(rot, cls) and rot.__class__ is cls:
             return rot
         if not isinstance(rot, Rotation):
             raise TypeError(f"Expected scipy Rotation, got {type(rot).__name__}")
-        out = cls.from_quat(rot.as_quat())
+        out = cls.__new__(cls)
+        out.__setstate__(rot.__getstate__())
         if not isinstance(out, cls) or out.__class__ is not cls:
             raise TypeError(
                 f"Expected strict {cls.__name__} instance, got {type(out).__name__}"
@@ -81,12 +82,11 @@ class SO3(Rotation):
 
     @classmethod
     def from_quat(cls, quat: ArrayLike) -> SO3:
-        out = super().from_quat(quat)
-        if not isinstance(out, cls) or out.__class__ is not cls:
-            raise TypeError(
-                f"scipy Rotation.from_quat returned {type(out).__name__}, expected strict {cls.__name__}"
-            )
-        return out
+        return cls._from_rotation(Rotation.from_quat(quat))
+
+    @classmethod
+    def from_rotvec(cls, rotvec, degrees: bool = False) -> SO3:
+        return cls._from_rotation(Rotation.from_rotvec(rotvec, degrees=degrees))
 
     @classmethod
     def from_wxyz(cls, wxyz: ArrayLike) -> SO3:
@@ -158,6 +158,15 @@ class SO3(Rotation):
         if isinstance(target, Rotation):
             return self._coerce_rotation(result)
         return result
+
+    def __mul__(self, other: Rotation) -> SO3 | np.ndarray:
+        result = super().__mul__(other)
+        if isinstance(other, Rotation):
+            return self._coerce_rotation(result)
+        return result
+
+    def __getitem__(self, index) -> SO3:
+        return self._coerce_rotation(super().__getitem__(index))
 
     def inv(self) -> SO3:
         return self._from_rotation(super().inv())
